@@ -5,6 +5,9 @@ from teachDRL.spinup.algos.sac import core
 from teachDRL.spinup.algos.sac.core import get_vars
 from teachDRL.spinup.utils.logx import EpochLogger
 
+#check the code given from spinup in their repository
+#https://github.com/openai/spinningup/blob/master/spinup/algos/tf1/sac/sac.py
+
 class ReplayBuffer:
     """
     A simple FIFO experience replay buffer for SAC agents.
@@ -144,6 +147,7 @@ def sac(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
         env.env.my_init(env_init)
         test_env.env.my_init(env_init)
 
+    ##Basic Difference from the Spinup SAC Algorithm - We want to check is the Teacher has already been set
 
     if Teacher: Teacher.set_env_params(env)
     env.reset()
@@ -190,7 +194,7 @@ def sac(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
     pi_loss = tf.reduce_mean(alpha * logp_pi - q1_pi)
     q1_loss = 0.5 * tf.reduce_mean((q_backup - q1)**2)
     q2_loss = 0.5 * tf.reduce_mean((q_backup - q2)**2)
-    v_loss = 0.5 * tf.reduce_mean((v_backup - v)**2)
+    v_loss = 0.5 * tf.reduce_mean((v_backup - v)**2) #In this example we have a v_loss which has not been included in the original repository of spinup
     value_loss = q1_loss + q2_loss + v_loss
 
     # Policy train op 
@@ -201,7 +205,7 @@ def sac(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
     # Value train op
     # (control dep of train_pi_op because sess.run otherwise evaluates in nondeterministic order)
     value_optimizer = tf.train.AdamOptimizer(learning_rate=lr)
-    value_params = get_vars('main/q') + get_vars('main/v')
+    value_params = get_vars('main/q') + get_vars('main/v') #Adding the 'main/v' vars here
     with tf.control_dependencies([train_pi_op]):
         train_value_op = value_optimizer.minimize(value_loss, var_list=value_params)
 
@@ -219,8 +223,9 @@ def sac(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
     target_init = tf.group([tf.assign(v_targ, v_main)
                               for v_main, v_targ in zip(get_vars('main'), get_vars('target'))])
 
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
+    config = tf.ConfigProto() #Additions made in Portelas' project
+    config.gpu_options.allow_growth = True #Additions made in Portelas' project
+
     sess = tf.Session(config=config)
     sess.run(tf.global_variables_initializer())
     sess.run(target_init)
@@ -235,17 +240,17 @@ def sac(env_fn, actor_critic=core.mlp_actor_critic, ac_kwargs=dict(), seed=0,
         return sess.run(act_op, feed_dict={x_ph: o.reshape(1,-1)})[0]
 
     def test_agent(n=10):
-        global sess, mu, pi, q1, q2, q1_pi, q2_pi
-        for j in range(n):
-            if Teacher: Teacher.set_test_env_params(test_env)
-            o, r, d, ep_ret, ep_len = test_env.reset(), 0, False, 0, 0
+        global sess, mu, pi, q1, q2, q1_pi, q2_pi #Portelas' project: Declaration as global vars, out of the for loop
+        for j in range(n): # Where n is the number of test episodes
+            if Teacher: Teacher.set_test_env_params(test_env) # Portelas' project: if statement to check the Teacher
+            o, r, d, ep_ret, ep_len = test_env.reset(), 0, False, 0, 0 #Portelas' additional 'r' parameter
             while not(d or (ep_len == max_ep_len)):
                 # Take deterministic actions at test time 
                 o, r, d, _ = test_env.step(get_action(o, True))
                 ep_ret += r
                 ep_len += 1
             logger.store(TestEpRet=ep_ret, TestEpLen=ep_len)
-            if Teacher: Teacher.record_test_episode(ep_ret, ep_len)
+            if Teacher: Teacher.record_test_episode(ep_ret, ep_len) #Portelas' project: If Teacher for recording the test episode
 
     start_time = time.time()
     o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0

@@ -31,7 +31,7 @@ def param_dict_to_param_vec(param_env_bounds, param_dict):  # needs param_env_bo
     return np.array(param_vec, dtype=np.float32)
 
 
-
+#This teacher controller is going to create a Teacher using the teacher parameter
 class TeacherController(object):
     def __init__(self, teacher, nb_test_episodes, param_env_bounds, seed=None, teacher_params={}):
         self.teacher = teacher

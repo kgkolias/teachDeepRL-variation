@@ -1,5 +1,5 @@
 from teachDRL.spinup.utils.run_utils import ExperimentGrid
-from teachDRL.spinup.import ppo
+from teachDRL.spinup.algos import ppo
 import tensorflow as tf
 
 if __name__ == '__main__':
